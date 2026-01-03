@@ -472,6 +472,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Track currently open dropdown
+  let currentOpenDropdown = null;
+
   // Function to share activity
   function shareActivity(name, details, platform) {
     const formattedSchedule = formatSchedule(details);
@@ -497,7 +500,8 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
     }
     
-    if (shareUrl) {
+    // Validate URL protocol before opening
+    if (shareUrl && (shareUrl.startsWith('https://') || shareUrl.startsWith('mailto:'))) {
       window.open(shareUrl, '_blank', 'width=600,height=400');
     }
   }
@@ -648,13 +652,14 @@ document.addEventListener("DOMContentLoaded", () => {
     
     shareButton.addEventListener("click", (e) => {
       e.stopPropagation();
-      // Close all other dropdowns
-      document.querySelectorAll(".share-dropdown").forEach(dropdown => {
-        if (dropdown !== shareDropdown) {
-          dropdown.classList.add("hidden");
-        }
-      });
-      shareDropdown.classList.toggle("hidden");
+      // Close previously open dropdown if it exists
+      if (currentOpenDropdown && currentOpenDropdown !== shareDropdown) {
+        currentOpenDropdown.classList.add("hidden");
+      }
+      
+      // Toggle current dropdown
+      const isHidden = shareDropdown.classList.toggle("hidden");
+      currentOpenDropdown = isHidden ? null : shareDropdown;
     });
 
     // Add click handlers for share options
@@ -671,11 +676,12 @@ document.addEventListener("DOMContentLoaded", () => {
     activitiesList.appendChild(activityCard);
   }
 
-  // Close share dropdowns when clicking outside
+  // Close share dropdown when clicking outside
   document.addEventListener("click", () => {
-    document.querySelectorAll(".share-dropdown").forEach(dropdown => {
-      dropdown.classList.add("hidden");
-    });
+    if (currentOpenDropdown) {
+      currentOpenDropdown.classList.add("hidden");
+      currentOpenDropdown = null;
+    }
   });
 
   // Event listeners for search and filter
