@@ -500,9 +500,18 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
     }
     
-    // Validate URL protocol before opening
-    if (shareUrl && (shareUrl.startsWith('https://') || shareUrl.startsWith('mailto:'))) {
-      window.open(shareUrl, '_blank', 'width=600,height=400');
+    // Validate URL using URL constructor for robust validation
+    if (shareUrl) {
+      try {
+        const url = new URL(shareUrl);
+        // Only allow https and mailto protocols
+        if (url.protocol === 'https:' || url.protocol === 'mailto:') {
+          window.open(shareUrl, '_blank', 'width=600,height=400');
+        }
+      } catch (e) {
+        // Invalid URL, do nothing
+        console.error('Invalid share URL:', shareUrl);
+      }
     }
   }
 
@@ -670,6 +679,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const platform = option.dataset.platform;
         shareActivity(name, details, platform);
         shareDropdown.classList.add("hidden");
+        currentOpenDropdown = null;
       });
     });
 
