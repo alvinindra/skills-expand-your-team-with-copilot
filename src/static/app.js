@@ -472,6 +472,49 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Track currently open dropdown
+  let currentOpenDropdown = null;
+
+  // Function to share activity
+  function shareActivity(name, details, platform) {
+    const formattedSchedule = formatSchedule(details);
+    const pageUrl = window.location.href;
+    const shareText = `Check out ${name} at Mergington High School! ${details.description} Schedule: ${formattedSchedule}`;
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(pageUrl);
+    
+    let shareUrl = '';
+    
+    switch(platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodedText}%20${encodedUrl}`;
+        break;
+      case 'email':
+        shareUrl = `mailto:?subject=${encodeURIComponent('Check out this activity!')}&body=${encodedText}%20${encodedUrl}`;
+        break;
+    }
+    
+    // Validate URL using URL constructor for robust validation
+    if (shareUrl) {
+      try {
+        const url = new URL(shareUrl);
+        // Only allow https and mailto protocols
+        if (url.protocol === 'https:' || url.protocol === 'mailto:') {
+          window.open(shareUrl, '_blank', 'width=600,height=400');
+        }
+      } catch (e) {
+        // Invalid URL, do nothing
+        console.error('Invalid share URL:', shareUrl);
+      }
+    }
+  }
+
   // Function to render a single activity card
   function renderActivityCard(name, details) {
     const activityCard = document.createElement("div");
@@ -519,6 +562,30 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    // Create share button with dropdown
+    const shareButtonHtml = `
+      <div class="share-container">
+        <button class="share-button" data-activity="${name}">
+          <span class="share-icon">📤</span>
+          <span>Share</span>
+        </button>
+        <div class="share-dropdown hidden">
+          <button class="share-option" data-platform="facebook">
+            <span class="platform-icon">📘</span> Facebook
+          </button>
+          <button class="share-option" data-platform="twitter">
+            <span class="platform-icon">🐦</span> Twitter
+          </button>
+          <button class="share-option" data-platform="whatsapp">
+            <span class="platform-icon">💬</span> WhatsApp
+          </button>
+          <button class="share-option" data-platform="email">
+            <span class="platform-icon">✉️</span> Email
+          </button>
+        </div>
+      </div>
+    `;
+
     activityCard.innerHTML = `
       ${tagHtml}
       <h4>${name}</h4>
@@ -553,6 +620,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </ul>
       </div>
       <div class="activity-card-actions">
+        ${shareButtonHtml}
         ${
           currentUser
             ? `
@@ -587,8 +655,44 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // Add click handler for share button
+    const shareButton = activityCard.querySelector(".share-button");
+    const shareDropdown = activityCard.querySelector(".share-dropdown");
+    
+    shareButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Close previously open dropdown if it exists
+      if (currentOpenDropdown && currentOpenDropdown !== shareDropdown) {
+        currentOpenDropdown.classList.add("hidden");
+      }
+      
+      // Toggle current dropdown
+      const isHidden = shareDropdown.classList.toggle("hidden");
+      currentOpenDropdown = isHidden ? null : shareDropdown;
+    });
+
+    // Add click handlers for share options
+    const shareOptions = activityCard.querySelectorAll(".share-option");
+    shareOptions.forEach(option => {
+      option.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const platform = option.dataset.platform;
+        shareActivity(name, details, platform);
+        shareDropdown.classList.add("hidden");
+        currentOpenDropdown = null;
+      });
+    });
+
     activitiesList.appendChild(activityCard);
   }
+
+  // Close share dropdown when clicking outside
+  document.addEventListener("click", () => {
+    if (currentOpenDropdown) {
+      currentOpenDropdown.classList.add("hidden");
+      currentOpenDropdown = null;
+    }
+  });
 
   // Event listeners for search and filter
   searchInput.addEventListener("input", (event) => {
